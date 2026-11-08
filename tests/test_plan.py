@@ -6,8 +6,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import engine.optimizer as optimizer
 from engine.metrics import get_profile, all_customers
-from engine.shocks import apply_shock, shock_many, runway_number, ei_cap_view, ei_cap_many
-from engine.optimizer import optimize, optimize_many
+from engine.customer_types import classify
+from engine.shocks import (apply_shock, shock_many, runway_number, ei_cap_view, ei_cap_many,
+                           DEFAULT_HORIZON)
+from engine.optimizer import optimize, optimize_many, limits_for, STRONG, MODERATE, GENTLE
 from engine.goalplan import goal_plan
 
 
@@ -23,17 +25,19 @@ LAYOFF_BILLS = twist(mult=0.55, bills=15, horizon=6)  # README twist 3
 
 
 def run_one(aid, settings, aim="max"):
-    """Shock + optimizer for one account with the given aim."""
+    """Shock + optimizer for one account (with its real customer type) and the given aim."""
     optimizer.AIM = aim
     p = get_profile(aid)
+    ctype, _ = classify(aid)
     shocked = apply_shock(p, settings)
-    opt = optimize(p, shocked, settings, None)
+    opt = optimize(p, shocked, settings, ctype)
     optimizer.AIM = "max"                             # put the placeholder back
     return p, shocked, opt
 
 
 def test_check_values_23595():
-    """CLAUDE.md check values: shock 5.2, max cuts 1104/214/281 -> 10.1, cheapest ~411 -> 6.0."""
+    """CLAUDE.md check values (23595 is Savings-first -> moderate limits):
+    shock 5.2, max cuts 1104/214/281 -> 10.1, cheapest ~411 -> 6.0."""
     p, shocked, opt = run_one(23595, LAYOFF_BILLS, "max")
     assert shocked["runway_shock"] == 5.2
     assert round(opt["cuts"]["cash"]) == 1104
@@ -46,10 +50,27 @@ def test_check_values_23595():
     assert cheap["runway_opt"] == 6.0 and cheap["reached"] is True
 
 
+def test_limits_per_type():
+    """D-1 proposal: Stabilize first strong, Savings-first/Trim moderate, Pension-protected gentle."""
+    assert limits_for("Stabilize first") == STRONG
+    assert limits_for("Savings-first") == MODERATE and limits_for("Trim") == MODERATE
+    assert limits_for("Pension-protected") == GENTLE
+    assert limits_for(None) == MODERATE               # unknown type -> moderate
+
+    # A Stabilize-first account that's still short of money after max cuts gets the STRONG cuts
+    table = all_customers()
+    for aid in table.index[table["type"] == "Stabilize first"]:
+        p, shocked, opt = run_one(aid, LAYOFF_BILLS, "max")
+        if opt["reached"] is False and p["cash"] > 0:
+            assert abs(opt["cuts"]["cash"] - round(p["cash"] * 0.50, 2)) < 0.01
+            break
+
+
 def test_goal_plan_23595():
-    """CLAUDE.md check value for the goal plan message."""
+    """Goal plan: over 24 months the length is shown in years (103 months -> about 8.6 years)."""
     assert goal_plan(get_profile(23595), None)["message"] == \
-        "Save $28/month for 103 months to reach $20,238."
+        "Save $28/month for about 8.6 years to reach $20,238."
+    assert goal_plan(get_profile(23595), None)["months"] == 103   # months key stays a number
 
 
 def test_impossible_goal():
@@ -62,11 +83,13 @@ def test_impossible_goal():
     assert abs(opt["extra_savings_needed"] - expected) < 1
 
 
-def test_no_goal_gives_none():
-    """Furnace twist has no horizon -> reached is None, no extra savings."""
+def test_no_goal_uses_default():
+    """D-4 proposal: a twist with no goal (furnace) is judged against DEFAULT_HORIZON (6 months)."""
+    assert DEFAULT_HORIZON == 6
     _, shocked, opt = run_one(23595, FURNACE, "max")
-    assert shocked["verdict_shock"] is None
-    assert opt["reached"] is None and opt["extra_savings_needed"] == 0.0
+    expected = runway_number(shocked["runway_shock"]) >= 6
+    assert shocked["verdict_shock"] is expected
+    assert opt["reached"] in (True, False)
 
 
 def test_optimizer_never_worse_than_shock():
@@ -90,7 +113,8 @@ def test_edge_accounts():
 
 
 def test_everyone_equals_single():
-    """V11 (for step 6): shock_many/optimize_many give the same runways as the single versions."""
+    """V11 (for step 6): shock_many/optimize_many give the same runways as the single versions,
+    including the per-type limits."""
     table = all_customers()
     sample = table.index[::10]                        # every 10th account keeps the test quick
     for settings in (LAYOFF, FURNACE, LAYOFF_BILLS):
@@ -103,6 +127,7 @@ def test_everyone_equals_single():
                 _, shocked, opt = run_one(aid, settings, aim)
                 assert runway_number(shocked["runway_shock"]) == many_shock.loc[aid, "runway_shock"]
                 assert runway_number(opt["runway_opt"]) == many_opt.loc[aid, "runway_opt"]
+                assert abs(opt["total_cut"] - many_opt.loc[aid, "total_cut"]) < 0.01
 
 
 def test_ei_cap_view():
@@ -128,8 +153,8 @@ def test_ei_cap_view():
 
 
 if __name__ == "__main__":
-    tests = [test_check_values_23595, test_goal_plan_23595, test_impossible_goal,
-             test_no_goal_gives_none, test_optimizer_never_worse_than_shock,
+    tests = [test_check_values_23595, test_limits_per_type, test_goal_plan_23595,
+             test_impossible_goal, test_no_goal_uses_default, test_optimizer_never_worse_than_shock,
              test_edge_accounts, test_everyone_equals_single, test_ei_cap_view]
     for t in tests:
         t()

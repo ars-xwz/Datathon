@@ -26,6 +26,15 @@ from engine.customer_types import EI_MAX   # $729/week x 52 / 12 = $3,159/month
 
 NO_SHORTFALL = "no shortfall (120+)"   # what metrics.runway() returns when income covers spending
 
+# PLACEHOLDER: decision D-4 (goal when the twist gives none). Arshiya's proposal: 6 months; team to confirm.
+DEFAULT_HORIZON = 6
+
+
+def goal_months(settings):
+    """The goal in months: the twist's horizon if it gave one, otherwise DEFAULT_HORIZON."""
+    h = settings.get("horizon_months")
+    return DEFAULT_HORIZON if h is None else h
+
 
 def shock_numbers(I, S, H, B, settings):
     """Income, spending, one-off and buffer left after the shock. Works on numbers OR pandas columns."""
@@ -59,8 +68,7 @@ def apply_shock(p, settings):
     income, spending, one_off, buffer_left = shock_numbers(p["I"], p["S"], p["H"], p["B"], settings)
     r_today = runway(p["B"], p["S"], p["I"])               # (a) today, no shock
     r_shock = runway(buffer_left, spending, income)        # (b) after shock = OFFICIAL number
-    h = settings.get("horizon_months")
-    verdict = None if h is None else runway_number(r_shock) >= h
+    verdict = runway_number(r_shock) >= goal_months(settings)
     return {"income": income, "spending": spending, "one_off": one_off, "buffer_left": buffer_left,
             "runway_today": r_today, "runway_shock": r_shock, "verdict_shock": verdict}
 
@@ -96,9 +104,8 @@ def ei_cap_view(p, settings):
     income, spending, _, buffer_left = shock_numbers(p["I"], p["S"], p["H"], p["B"], settings)
     income_capped = float(capped_income(income, settings))
     r = runway(buffer_left, spending, income_capped)
-    h = settings.get("horizon_months")
     return {"income_capped": income_capped, "runway_capped": r,
-            "verdict_capped": None if h is None else runway_number(r) >= h,
+            "verdict_capped": runway_number(r) >= goal_months(settings),
             "cap_changes_answer": income_capped < income, "label": EI_CAP_LABEL}
 
 

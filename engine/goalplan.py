@@ -2,13 +2,21 @@
 
 Fund target = FUND_MONTHS x S (months of typical spending).
 Monthly saving = SAVE_SHARE x surplus, where surplus = I - S.
-Months = (target - B) / monthly saving, rounded up.
+Months = (target - B) / monthly saving, rounded up. Over 24 months, the message says years.
 """
 import math
 
-# PLACEHOLDER: decision D-5
+# PLACEHOLDER: decision D-5 (Arshiya's proposal: 3 months, 50%, years after 24 months; team to confirm)
 FUND_MONTHS = 3
 SAVE_SHARE = 0.5
+SHOW_YEARS_AFTER = 24     # plans longer than this many months are worded in years
+
+
+def how_long(months):
+    """Wording for the plan length: '18 months' up to SHOW_YEARS_AFTER, then 'about 8.6 years'."""
+    if months <= SHOW_YEARS_AFTER:
+        return f"{months} months"
+    return f"about {months / 12:.1f} years"
 
 
 def goal_plan(p, ctype):
@@ -31,4 +39,4 @@ def goal_plan(p, ctype):
 
     months = math.ceil(still_needed / monthly_saving)
     return {"target": target, "monthly_saving": monthly_saving, "months": months,
-            "message": f"Save ${monthly_saving:,.0f}/month for {months} months to reach ${target:,.0f}."}
+            "message": f"Save ${monthly_saving:,.0f}/month for {how_long(months)} to reach ${target:,.0f}."}
