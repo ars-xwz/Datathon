@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delta-or-Die – will they make it?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F5FA; --panel:rgba(255,255,255,.82); --line:#D9DEEA; --ink:#0B1026; --muted:#5A6380;
+  --purple:#5B3FE0; --gold:#A86400; --teal:#077A8C; --coral:#C42B45; --short:#B8BFD0; --blue:#2F5BFF;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#F4F6FA;color:var(--ink);font:300 15px/1.7 Sora,system-ui,sans-serif;overflow-x:hidden}
+#globe{position:fixed;inset:0;width:100vw;height:100vh;display:block;cursor:grab}
+#globe.drag{cursor:grabbing}
+nav{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:32px 56px;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;font-family:Michroma,sans-serif;letter-spacing:.3em;font-size:13px}
+.links{display:flex;gap:36px;align-items:center;font-family:Michroma,sans-serif;font-size:10px;letter-spacing:.22em}
+.links span{color:var(--muted)}
+.pill{background:var(--ink);color:#fff;border:0;border-radius:2px;padding:12px 22px;letter-spacing:.2em;font:400 11px Michroma,system-ui,sans-serif;letter-spacing:.1em;cursor:pointer;min-height:44px}
+main{position:relative;z-index:2;pointer-events:none;padding:24px 56px 64px;display:flex;flex-direction:column;gap:32px;max-width:500px}
+main>*{pointer-events:auto}
+h1{font-family:Michroma,sans-serif;font-weight:400;font-size:34px;line-height:1.3;margin:16px 0 0;letter-spacing:.04em;text-transform:uppercase}
+.lede{color:#3A4361;margin:0;max-width:400px}
+.lede em{color:var(--blue);font-style:italic}
+.card{box-shadow:0 10px 30px rgba(11,16,38,.06);background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:4px;padding:26px 26px}
+.lbl{font-family:Michroma,sans-serif;font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input[type=text],input[type=number]{background:#F7F8FC;border:1px solid var(--line);color:var(--ink);border-radius:2px;padding:10px 12px;font:400 15px Sora,system-ui,sans-serif;min-height:44px}
+input[type=number]{font-family:var(--mono);width:110px}
+#twist{flex:1;min-width:0}
+button.go{background:var(--blue);color:#fff;border:0;border-radius:2px;padding:0 16px;font:400 12px Michroma,system-ui,sans-serif;letter-spacing:.12em;min-height:44px;cursor:pointer}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.chip{background:#fff;border:1px solid var(--line);color:#2A3350;border-radius:2px;padding:7px 12px;font:400 12px Sora,system-ui,sans-serif;cursor:pointer;min-height:36px}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+.sliders{display:grid;grid-template-columns:1fr 1fr;gap:22px 28px;margin-top:22px}
+.sl label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-weight:400}
+.sl output{font-family:var(--mono);color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--blue);height:28px}
+.big{display:flex;align-items:baseline;gap:10px;margin-top:6px}
+.big .n{font-family:var(--mono);font-size:60px;font-weight:400;line-height:1;letter-spacing:-.03em}
+.big .u{color:var(--muted);font-size:18px}
+.badge{display:inline-flex;align-items:center;gap:8px;border-radius:2px;padding:5px 10px;font-size:12px;font-weight:500}
+.dot{display:inline-block;flex:0 0 auto;width:10px;height:10px;min-width:10px;min-height:10px;border-radius:50%;vertical-align:middle}
+.key{display:inline-flex;align-items:center;gap:10px;white-space:nowrap}
+.sw{display:block;flex:0 0 18px;width:18px;height:8px}
+.legend .sw{flex-basis:22px;width:22px;height:10px}
+.legend .dot{width:12px;height:12px;min-width:12px;min-height:12px}
+.verdict{font-family:Michroma,sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin-top:6px}
+.sub{color:var(--muted);font-size:13px;margin:4px 0 0}
+.bars{display:grid;gap:12px;margin-top:16px}
+.bar{display:grid;grid-template-columns:118px 1fr 44px;gap:8px;align-items:center;font-size:12px}
+.track{height:4px;background:#E6E9F2;border-radius:99px;overflow:hidden}
+.fill{height:100%;border-radius:99px;transition:width .5s}
+.bar .pct{font-family:var(--mono);text-align:right}
+.legend{position:fixed;right:40px;bottom:28px;z-index:2;display:flex;flex-direction:column;gap:10px;font-size:13px;color:#2A3350;background:rgba(255,255,255,.8);border:1px solid var(--line);padding:10px 18px;border-radius:2px}
+#tip{position:fixed;z-index:4;pointer-events:none;background:#fff;color:var(--ink);box-shadow:0 6px 20px rgba(11,16,38,.12);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;display:none;white-space:nowrap}
+#tip b{font-family:var(--mono)}
+.err{color:var(--coral);font-size:13px;margin-top:8px;min-height:1em}
+.hint{position:fixed;z-index:2;transform:translateX(-50%);white-space:nowrap;letter-spacing:.04em;color:var(--muted);font-size:12px;pointer-events:none}
+.cuts{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px}
+.cuts li{padding:8px 12px;background:#F7F8FC;border:1px solid var(--line);border-radius:2px}
+.cuts b{font-family:var(--mono);font-weight:500}
+details.calc{margin-top:16px}
+details.calc summary{cursor:pointer;font-family:Michroma,sans-serif;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);min-height:32px;display:flex;align-items:center}
+.tablewrap{overflow-x:auto}
+#calc{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+#calc th{font-weight:500;text-align:right;color:var(--muted);padding:6px 6px;border-bottom:1px solid var(--line);font-size:11px}
+#calc th span{font-size:10px}
+#calc td{text-align:right;padding:6px 6px;border-bottom:1px solid #EEF0F6;font-family:var(--mono)}
+#calc td:first-child{text-align:left;font-family:Sora,sans-serif;color:var(--ink)}
+#calc tr.cut td{color:var(--muted)}
+#calc tr.cut td:first-child{padding-left:16px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+.segb{background:#fff;border:0;padding:6px 10px;font:400 12px Sora,system-ui,sans-serif;color:#2A3350;cursor:pointer;min-height:34px}
+.segb.on{background:var(--ink);color:#fff}
+.bar{grid-template-columns:150px 1fr 64px}
+.bar .key{gap:8px}
+.hist{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.histb{width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:2px;padding:8px 12px;cursor:pointer;font:400 13px Sora,system-ui,sans-serif;color:var(--ink);display:grid;gap:2px}
+.histb:hover{border-color:var(--blue)}
+.histb small{color:var(--muted);font-size:11px}
+@media (max-width:820px){
+  .legend{top:auto;bottom:16px;right:16px;flex-direction:row;flex-wrap:wrap;gap:12px}
+  #globe{position:relative;height:62vh}
+  main{max-width:none;padding:0 18px 90px}
+  nav{padding:18px}
+  .links span{display:none}
+  h1{font-size:34px}
+  .hint{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="globe" aria-label="Globe of 4,500 customers. Each dot is one customer, coloured by type. Customers who fall short of the goal sink into the globe and turn grey." role="img"></canvas>
+<div id="tip"></div>
+
+<nav>
+  <div class="brand">
+    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 19H3z" fill="none" stroke="#0B1026" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 10 16 17H8z" fill="#2F5BFF"/></svg>
+    DELTA-OR-DIE
+  </div>
+  <div class="links"><span>HOW IT WORKS</span><span>FINDINGS</span><button class="pill" type="button" id="randomBtn">PICK A RANDOM CUSTOMER</button></div>
+</nav>
+<div class="hint">Drag to spin · hover to magnify · click to load a customer</div>
+
+<main>
+  <div>
+    <h1>Will they make it?</h1>
+  </div>
+  <p class="lede">Each dot is one of 4,500 real customers.<br>Read a twist and watch who <em>sinks</em>.</p>
+
+  <!-- Steps 1-2: ask + confirm -->
+  <section class="card" aria-label="Twist card">
+    <div class="lbl">Read the twist card</div>
+    <form class="row" id="twistForm" style="margin-top:8px">
+      <label for="twist" style="position:absolute;left:-9999px">Twist card text</label>
+      <input type="text" id="twist" placeholder="e.g. account 23595 laid off, EI 55%, bills up 15%">
+      <button class="go" type="submit">Run</button>
+    </form>
+    <div class="chips">
+      <button class="chip" type="button" data-p="55,0,0,6">Laid off · EI 55%</button>
+      <button class="chip" type="button" data-p="55,15,0,6">Laid off + bills +15%</button>
+      <button class="chip" type="button" data-p="100,0,1,6">Furnace = 1 month</button>
+    </div>
+    <p class="sub" id="understood" style="margin-top:14px"></p>
+    <div class="sliders">
+      <div class="sl"><label for="inc">Income after shock <output id="incO">55%</output></label><input type="range" id="inc" min="0" max="100" step="5" value="55"></div>
+      <div class="sl"><label for="bills">Household bills <output id="billsO">+0%</output></label><input type="range" id="bills" min="0" max="50" step="5" value="0"></div>
+      <div class="sl"><label for="oneoff">One-off cost <output id="oneoffO">0 mo</output></label><input type="range" id="oneoff" min="0" max="3" step="0.5" value="0"></div>
+      <div class="sl"><label for="goal">Goal <output id="goalO">6 mo</output></label><input type="range" id="goal" min="1" max="12" step="1" value="6"></div>
+      <div class="sl"><label for="oneoffAmt">One-off cost ($)</label><input type="number" id="oneoffAmt" min="0" step="100" value="0" style="width:100%"></div>
+    </div>
+    <div class="err" id="err" role="status"></div>
+  </section>
+
+  <!-- Steps 3-4: know the customer + the shock -->
+  <section class="card" aria-live="polite">
+    <div class="row" style="justify-content:space-between">
+      <div class="row"><span class="lbl">Customer</span><label for="acct" style="position:absolute;left:-9999px">Account ID</label><input type="number" id="acct" value="23595"></div>
+      <span id="badge" class="badge"></span>
+    </div>
+    <p class="sub" id="reason"></p>
+    <div class="lbl" style="margin-top:14px">Runway after shock · official</div>
+    <div class="big"><span class="n" id="rw">–</span><span class="u" id="rwU">months</span></div>
+    <div class="verdict" id="verdict"></div>
+    <p class="sub" id="today"></p>
+    <p class="sub" id="cap"></p>
+  </section>
+
+  <!-- Step 5: the plan -->
+  <section class="card" aria-live="polite">
+    <div class="lbl">The plan · if the shock hits</div>
+    <div class="big"><span class="n" id="rwOpt" style="font-size:48px">–</span><span class="u" id="rwOptU">months</span></div>
+    <div class="verdict" id="verdictOpt"></div>
+    <ul class="cuts" id="cuts"></ul>
+    <p class="sub" id="why"></p>
+    <div class="lbl" style="margin-top:18px">Goal plan · before a shock</div>
+    <p class="sub" id="goalPlan" style="color:var(--ink)"></p>
+    <details class="calc"><summary>Show the calculation</summary><div class="tablewrap"><table id="calc"></table></div></details>
+  </section>
+
+  <!-- Step 6: everyone -->
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="lbl">Same twist on everyone</div>
+      <div class="seg" role="group" aria-label="Globe shows">
+        <button type="button" class="segb on" data-v="shock">After shock</button>
+        <button type="button" class="segb" data-v="opt">With the plan</button>
+      </div>
+    </div>
+    <div class="big" style="margin-top:4px"><span class="n" id="crowd" style="font-size:44px">–</span><span class="u" id="crowdU">fall short</span></div>
+    <div class="bars" id="bars"></div>
+    <p class="sub" id="rank"></p>
+  </section>
+
+  <!-- Memory: request history -->
+  <section class="card">
+    <div class="lbl">Request history · click to reload</div>
+    <ol class="hist" id="hist"><li class="sub">Nothing yet</li></ol>
+  </section>
+</main>
+
+<div class="legend" aria-hidden="true">
+  <span class="key"><svg class="sw" width="18" height="8" viewBox="0 0 18 8" aria-hidden="true"><rect width="18" height="8" rx="1.5" fill="#C42B45"/></svg>Stabilize first</span>
+  <span class="key"><svg class="sw" width="18" height="8" viewBox="0 0 18 8" aria-hidden="true"><rect width="18" height="8" rx="1.5" fill="#077A8C"/></svg>Pension-protected</span>
+  <span class="key"><svg class="sw" width="18" height="8" viewBox="0 0 18 8" aria-hidden="true"><rect width="18" height="8" rx="1.5" fill="#5B3FE0"/></svg>Savings-first</span>
+  <span class="key"><svg class="sw" width="18" height="8" viewBox="0 0 18 8" aria-hidden="true"><rect width="18" height="8" rx="1.5" fill="#A86400"/></svg>Trim</span>
+  <span class="key"><svg class="sw" width="18" height="8" viewBox="0 0 18 8" aria-hidden="true"><rect width="18" height="8" rx="1.5" fill="#B8BFD0"/></svg>Falls short</span>
+</div>
+
+<script>
+// Every number on this page comes from app.py (the team's Python engine). Nothing is calculated here.
+const D = __CUSTOMERS__;                 // inserted by app.py: {ids, t, order, types}
+D.id = D.ids;
+const N = D.id.length;
+const TYPES = D.types;
+const COLORS = ["#C42B45","#077A8C","#5B3FE0","#A86400"], SHORT = "#B8BFD0";
+const $ = id => document.getElementById(id);
+const idx = new Map(D.id.map((a,i)=>[a,i]));
+let current = undefined;                  // index of the loaded customer
+let short = new Uint8Array(N);            // 1 = falls short (dot sinks + turns grey)
+let G = null, GOAL = 6, VIEW = "shock";   // globe arrays from the last run
+let parserUsed = "manual", pendingText = "";
+
+const money = x => (x < 0 ? "-$" : "$") + Math.abs(Math.round(x)).toLocaleString("en-CA");
+const isNum = r => typeof r === "number";
+const rwText = r => isNum(r) ? r.toFixed(1) : "120+";
+const fmtTip = r => r >= 120 ? "no shortfall" : r.toFixed(1) + " months";
+
+async function api(path, body){
+  const r = await fetch(path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || "Something went wrong");
+  return j;
+}
+
+// ---------- settings <-> fields ----------
+function labels(){
+  $("incO").textContent = $("inc").value + "%";
+  $("billsO").textContent = "+" + $("bills").value + "%";
+  $("oneoffO").textContent = $("oneoff").value + " mo";
+  $("goalO").textContent = $("goal").value + " mo";
+}
+function readFields(){
+  const a = $("acct").value.trim();
+  return { account_id: a === "" ? null : +a,
+           income_multiplier: +$("inc").value / 100,
+           bills_increase_pct: +$("bills").value,
+           one_off_months_spending: +$("oneoff").value,
+           one_off_amount: +$("oneoffAmt").value || 0,
+           horizon_months: +$("goal").value };
+}
+function setFields(s){
+  if (s.account_id != null) $("acct").value = s.account_id;
+  $("inc").value = Math.round((s.income_multiplier ?? 1) * 100);
+  $("bills").value = s.bills_increase_pct ?? 0;
+  $("oneoff").value = s.one_off_months_spending ?? 0;
+  $("oneoffAmt").value = s.one_off_amount ?? 0;
+  $("goal").value = s.horizon_months ?? 6;
+  labels();
+}
+
+// ---------- run the engine ----------
+async function doRun(){
+  $("err").textContent = "";
+  try {
+    const out = await api("/api/run", {settings: readFields(), text: pendingText, parser_used: parserUsed});
+    render(out);
+  } catch (e) { $("err").textContent = e.message; }
+  pendingText = ""; parserUsed = "manual";
+}
+
+function render(out){
+  const p = out.profile, sh = out.shocked, op = out.opt, cr = out.crowd;
+  GOAL = out.goal_used;
+  current = idx.get(p.account_id);
+  setFields(out.settings);
+
+  // step 3: customer + type
+  const t = TYPES.indexOf(out.type);
+  $("badge").innerHTML = `<svg class="sw" width="18" height="8" viewBox="0 0 18 8" aria-hidden="true"><rect width="18" height="8" rx="1.5" fill="${COLORS[t]}"/></svg>${out.type}`;
+  $("badge").style.cssText = `background:${COLORS[t]}26;color:#0B1026`;
+  $("reason").textContent = out.reason;
+
+  // step 4: official runway after the shock
+  $("rw").textContent = rwText(sh.runway_shock);
+  $("rwU").textContent = isNum(sh.runway_shock) ? "months" : "no shortfall";
+  $("verdict").textContent = sh.verdict_shock ? `Makes it past ${GOAL} months` : `Falls short of ${GOAL} months`;
+  $("verdict").style.color = sh.verdict_shock ? "#0F8A5F" : "#C42B45";
+  const rt = sh.runway_today;
+  $("today").textContent = `Today: ${isNum(rt) ? rt + " months" : rt} · income ${money(p.I)} · spending ${money(p.S)} · savings ${money(p.B)}`;
+  const cap = out.ei_cap;
+  $("cap").textContent = cap.cap_changes_answer ? `${cap.label}: ${isNum(cap.runway_capped) ? cap.runway_capped + " months" : cap.runway_capped}` : "";
+
+  // step 5: the plan
+  $("rwOpt").textContent = rwText(op.runway_opt);
+  $("rwOptU").textContent = isNum(op.runway_opt) ? "months" : "no shortfall";
+  const okOpt = !isNum(op.runway_opt) || op.runway_opt >= GOAL;
+  $("verdictOpt").textContent = okOpt ? `Makes it past ${GOAL} months with these cuts` : `Still short of ${GOAL} months`;
+  $("verdictOpt").style.color = okOpt ? "#0F8A5F" : "#C42B45";
+  const names = {cash:"Lower monthly cash withdrawals by", bills:"Lower household bills by", transfers:"Lower other transfers out by"};
+  const cuts = Object.entries(op.cuts).filter(([k,v]) => v > 0);
+  $("cuts").innerHTML = cuts.length ? cuts.map(([k,v]) => `<li>${names[k]} <b>${money(v)}</b>/month</li>`).join("") : `<li>No cuts needed</li>`;
+  $("why").textContent = out.view.sentences[2] || "";
+  $("goalPlan").textContent = out.goal.message;
+  const head = `<tr><th></th><th>Today</th><th>After shock<br><span>official</span></th><th>With plan</th></tr>`;
+  $("calc").innerHTML = head + out.view.table.map(r => `<tr${r[0].startsWith("  ")?' class="cut"':''}><td>${r[0].trim()}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("");
+
+  // step 6: everyone
+  G = out.globe;
+  renderEveryone(cr);
+
+  // memory
+  renderHistory(out.history);
+  applyGlobe();
+}
+
+function renderEveryone(cr){
+  const opt = VIEW === "opt";
+  $("crowd").textContent = (opt ? cr.pct_under_opt : cr.pct_under_shock) + "%";
+  $("crowdU").textContent = opt ? `still short of ${cr.horizon} mo with the plan` : `fall short of ${cr.horizon} mo after the shock`;
+  $("bars").innerHTML = TYPES.map((name,k) => {
+    const [a,b] = cr.by_type[name];
+    const v = opt ? b : a;
+    return `<div class="bar"><span class="key"><svg class="sw" width="18" height="8" viewBox="0 0 18 8" aria-hidden="true"><rect width="18" height="8" rx="1.5" fill="${COLORS[k]}"/></svg>${name}</span><div class="track"><div class="fill" style="width:${v}%;background:${COLORS[k]}"></div></div><span class="pct">${a}→${b}</span></div>`;
+  }).join("");
+  $("rank").textContent = cr.rank_longer_pct == null ? "" :
+    `After the shock, ${cr.rank_longer_pct}% of all customers last longer than this one (${cr.rank_in_type_pct}% within ${cr.account_type}).`;
+  window._crowd = cr;
+}
+
+function renderHistory(h){
+  if (!h || !h.length){ $("hist").innerHTML = `<li class="sub">Nothing yet</li>`; return; }
+  $("hist").innerHTML = h.map((x,i) => {
+    const s = x.settings;
+    const what = x.text ? x.text : "Adjusted settings";
+    const meta = `#${s.account_id} · income ${Math.round(s.income_multiplier*100)}% · bills +${s.bills_increase_pct}%` +
+                 (s.one_off_months_spending ? ` · one-off ${s.one_off_months_spending} mo` : "") +
+                 (s.one_off_amount ? ` · one-off ${money(s.one_off_amount)}` : "") + ` · ${x.parser}`;
+    return `<li><button type="button" class="histb" data-i="${i}"><span>${what}</span><small>${meta}</small></button></li>`;
+  }).join("");
+  document.querySelectorAll(".histb").forEach(b => b.addEventListener("click", () => {
+    setFields(h[+b.dataset.i].settings); doRun();
+  }));
+}
+
+function applyGlobe(){
+  if (!G) return;
+  const arr = VIEW === "opt" ? G.runway_opt : G.runway_shock;
+  for (let i=0;i<N;i++) short[i] = (arr[i] != null && arr[i] < GOAL) ? 1 : 0;
+}
+
+// ---------- events ----------
+["inc","bills","oneoff","goal"].forEach(id => {
+  $(id).addEventListener("input", labels);
+  $(id).addEventListener("change", doRun);             // run when the slider is released
+});
+$("oneoffAmt").addEventListener("change", doRun);
+$("acct").addEventListener("change", doRun);
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+  const [a,b,o,g] = c.dataset.p.split(",").map(Number);
+  setFields({account_id: readFields().account_id, income_multiplier: a/100, bills_increase_pct: b,
+             one_off_months_spending: o, one_off_amount: 0, horizon_months: g});
+  pendingText = c.textContent; parserUsed = "manual"; doRun();
+}));
+$("twistForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const text = $("twist").value.trim(); if (!text) return;
+  $("err").textContent = "";
+  try {
+    const u = await api("/api/understand", {text});
+    setFields(u.settings);
+    const s = u.settings, who = u.parser_used === "AI" ? "the AI" : "the backup parser";
+    $("understood").innerHTML = `<b>Here's what I understood</b> (read by ${who}): account ${s.account_id ?? "?"} · income ${Math.round(s.income_multiplier*100)}% · bills +${s.bills_increase_pct}%` +
+      (s.one_off_months_spending ? ` · one-off ${s.one_off_months_spending} mo of spending` : "") +
+      (s.one_off_amount ? ` · one-off ${money(s.one_off_amount)}` : "") +
+      ` · goal ${s.horizon_months ?? 6} mo. Edit anything below.`;
+    if (u.problems.length){ $("err").textContent = u.problems.join(" "); return; }
+    pendingText = text; parserUsed = u.parser_used; doRun();
+  } catch (err) { $("err").textContent = err.message; }
+});
+$("randomBtn").addEventListener("click", () => { $("acct").value = D.id[Math.floor(Math.random()*N)]; doRun(); });
+document.querySelectorAll(".segb").forEach(b => b.addEventListener("click", () => {
+  VIEW = b.dataset.v; document.querySelectorAll(".segb").forEach(x => x.classList.toggle("on", x === b));
+  if (window._crowd) renderEveryone(window._crowd);
+  applyGlobe();
+}));
+
+// ---------- globe ----------
+const cv = $("globe"), ctx = cv.getContext("2d");
+let W, H, dpr, R, cx, cy;
+function resize(){
+  dpr = Math.min(window.devicePixelRatio||1, 2);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  const narrow = W < 820;
+  R = narrow ? Math.min(W,H)*0.46 : Math.min(W*0.36, H*0.42);
+  cx = narrow ? W/2 : W*0.66; cy = narrow ? H*0.52 : H*0.535;
+  const hint = document.querySelector(".hint");
+  if (hint){ hint.style.left = cx + "px"; hint.style.top = Math.min(cy + R + 16, H - 26) + "px"; }
+}
+window.addEventListener("resize", resize);
+
+// place customers on a Fibonacci sphere, grouped by type so each type forms its own "continent"
+const order = [...Array(N).keys()].sort((a,b)=> D.t[a]-D.t[b] || D.order[a] - D.order[b]);
+const P = new Float32Array(N*3), spin = new Float32Array(N), rad = new Float32Array(N).fill(1);
+const golden = Math.PI*(3-Math.sqrt(5));
+order.forEach((ci,k)=>{
+  const y = 1 - (k/(N-1))*2, r = Math.sqrt(1-y*y), th = golden*k;
+  // small jitter so it looks organic
+  const j = 0.012;
+  P[ci*3] = Math.cos(th)*r + (Math.random()-.5)*j;
+  P[ci*3+1] = y + (Math.random()-.5)*j;
+  P[ci*3+2] = Math.sin(th)*r + (Math.random()-.5)*j;
+  spin[ci] = Math.random()*Math.PI*2;
+});
+// background stars + a few floating triangles
+const stars = Array.from({length:0},()=>({x:Math.random(),y:Math.random(),a:Math.random()*.5+.1}));
+const floaters = Array.from({length:0},()=>({x:Math.random(),y:Math.random(),s:8+Math.random()*16,r:Math.random()*6,v:(Math.random()-.5)*.002,c:COLORS[Math.floor(Math.random()*4)]}));
+
+let rotY = 0.6, rotX = -0.25, vel = 0.0015, dragging = false, lx=0, ly=0, hover = -1;
+// hover magnifier: dots near the mouse grow and spread apart, like a lens
+let mouseX = -999, mouseY = -999, lens = 0;          // lens = 0 (off) .. 1 (fully on)
+const LENS_R = 110;                                   // lens radius in px
+const dispX = new Float32Array(N), dispY = new Float32Array(N), mag = new Float32Array(N).fill(1);
+const proj = new Float32Array(N*3);
+
+function tri(x,y,s,a,fill,color){
+  ctx.beginPath();
+  for (let k=0;k<3;k++){ const ang=a+k*2.094; const px=x+Math.cos(ang)*s, py=y+Math.sin(ang)*s; k?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+  ctx.closePath();
+  if (fill){ ctx.fillStyle=color; ctx.fill(); } else { ctx.strokeStyle=color; ctx.lineWidth=1; ctx.stroke(); }
+}
+
+let SHAPE = "dot";
+function shape(x,y,s,a,fill,color){
+  ctx.fillStyle=color; ctx.strokeStyle=color; ctx.lineWidth=1.2;
+  if (SHAPE==="tri") return tri(x,y,s,a,fill,color);
+  ctx.beginPath();
+  if (SHAPE==="dot"){ ctx.arc(x,y,s*0.75,0,7); }
+  else if (SHAPE==="ring"){ ctx.arc(x,y,s*0.85,0,7); ctx.stroke(); return; }
+  else if (SHAPE==="diamond"){ ctx.moveTo(x,y-s); ctx.lineTo(x+s*0.7,y); ctx.lineTo(x,y+s); ctx.lineTo(x-s*0.7,y); ctx.closePath(); }
+  else if (SHAPE==="plus"){ ctx.moveTo(x-s,y); ctx.lineTo(x+s,y); ctx.moveTo(x,y-s); ctx.lineTo(x,y+s); ctx.stroke(); return; }
+  else if (SHAPE==="star"){ for(let k=0;k<8;k++){ const r=k%2?s*0.35:s*1.1, ang=a+k*Math.PI/4; const px=x+Math.cos(ang)*r, py=y+Math.sin(ang)*r; k?ctx.lineTo(px,py):ctx.moveTo(px,py);} ctx.closePath(); }
+  else if (SHAPE==="hex"){ for(let k=0;k<6;k++){ const ang=a+k*Math.PI/3; const px=x+Math.cos(ang)*s*0.85, py=y+Math.sin(ang)*s*0.85; k?ctx.lineTo(px,py):ctx.moveTo(px,py);} ctx.closePath(); }
+  if (fill) ctx.fill(); else ctx.stroke();
+}
+function frame(){
+  ctx.clearRect(0,0,W,H);
+  for (const s of stars){ ctx.fillStyle=`rgba(47,91,255,${s.a*0.5})`; ctx.fillRect(s.x*W,s.y*H,1.2,1.2); }
+  for (const f of floaters){ f.r+=f.v*8; ctx.globalAlpha=.28; tri(f.x*W,f.y*H,f.s,f.r,false,f.c); ctx.globalAlpha=1; }
+
+  const overGlobe = Math.hypot(mouseX-cx, mouseY-cy) < R*1.05;
+  lens += ((overGlobe && !dragging ? 1 : 0) - lens) * 0.15;
+  if (!dragging) rotY += vel * (1 - lens*0.9);
+  const cY=Math.cos(rotY), sY=Math.sin(rotY), cX=Math.cos(rotX), sX=Math.sin(rotX);
+  // soft glow behind the globe
+  const g = ctx.createRadialGradient(cx,cy,R*0.2,cx,cy,R*1.25);
+  g.addColorStop(0,"rgba(47,91,255,0.10)"); g.addColorStop(1,"rgba(243,245,250,0)");
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,R*1.25,0,7); ctx.fill();
+
+  // orbit rings + HUD ticks (techy space look)
+  ctx.save(); ctx.translate(cx,cy);
+  ctx.strokeStyle="rgba(47,91,255,0.16)"; ctx.lineWidth=1;
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.ellipse(0,0,R*1.32,R*0.42,-0.35,0,7); ctx.stroke();
+  ctx.setLineDash([]);
+  const sat = performance.now()/2600;
+  ctx.fillStyle="#2F5BFF"; const sx=Math.cos(sat)*R*1.32, sy=Math.sin(sat)*R*0.42;
+  ctx.rotate(-0.35); ctx.beginPath(); ctx.arc(sx,sy,3.5,0,7); ctx.fill(); ctx.rotate(0.35);
+  ctx.restore();
+  for (let i=0;i<N;i++){
+    const target = short[i] ? 0.78 : 1;
+    rad[i] += (target-rad[i])*0.06;
+    let x=P[i*3]*rad[i], y=P[i*3+1]*rad[i], z=P[i*3+2]*rad[i];
+    const x1 = x*cY - z*sY, z1 = x*sY + z*cY;
+    const y2 = y*cX - z1*sX, z2 = y*sX + z1*cX;
+    proj[i*3]=cx+x1*R; proj[i*3+1]=cy+y2*R; proj[i*3+2]=z2;
+  }
+  // lens: push nearby front-facing dots away from the mouse and make them bigger
+  for (let i=0;i<N;i++){
+    let x=proj[i*3], y=proj[i*3+1];
+    let m=1;
+    if (lens>0.01 && proj[i*3+2]>0){
+      const dx=x-mouseX, dy=y-mouseY, d=Math.hypot(dx,dy);
+      if (d<LENS_R){
+        const k=1-d/LENS_R;                 // 1 at the centre, 0 at the edge
+        const push=1+0.9*k*lens;            // spread dots apart
+        x=mouseX+dx*push; y=mouseY+dy*push;
+        m=1+2.6*k*k*lens;                   // grow dots
+      }
+    }
+    dispX[i]=x; dispY[i]=y; mag[i]=m;
+  }
+  // back to front: draw far half first, then near half
+  for (let pass=0; pass<2; pass++){
+    for (let i=0;i<N;i++){
+      const z=proj[i*3+2]; if ((pass===0) !== (z<0)) continue;
+      const depth=(z+1)/2;
+      const sh = short[i];
+      const size = (sh?1.2:1.8) + depth*1.7;
+      ctx.globalAlpha = sh ? 0.35+depth*0.35 : 0.30+depth*0.70;
+      const col = sh ? SHORT : COLORS[D.t[i]];
+      shape(dispX[i],dispY[i],size*mag[i],spin[i]+rotY,!sh && depth>0.45,col);
+    }
+  }
+  ctx.globalAlpha=1;
+  if (lens>0.05){
+    ctx.strokeStyle=`rgba(47,91,255,${0.35*lens})`; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(mouseX,mouseY,LENS_R*1.25,0,7); ctx.stroke();
+  }
+  // highlight current customer
+  if (current!==undefined){
+    const x=dispX[current], y=dispY[current], z=proj[current*3+2];
+    const pulse = 8 + Math.sin(performance.now()/300)*3;
+    ctx.strokeStyle = z>0 ? "#0B1026" : "rgba(11,16,38,.35)"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(x,y,pulse,0,7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+pulse,y-pulse); ctx.lineTo(x+40,y-40); ctx.lineTo(x+110,y-40); ctx.stroke();
+    ctx.fillStyle="#0B1026"; ctx.font="700 12px 'JetBrains Mono',monospace"; ctx.fillText("#"+D.id[current], x+46, y-46);
+  }
+  if (hover>=0){
+    ctx.strokeStyle="#2F5BFF"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(dispX[hover],dispY[hover],6+3*mag[hover],0,7); ctx.stroke();
+  }
+  requestAnimationFrame(frame);
+}
+
+function nearest(mx,my){
+  let best=-1, bd=100;
+  for (let i=0;i<N;i++){
+    if (proj[i*3+2] < 0) continue;
+    const dx=dispX[i]-mx, dy=dispY[i]-my, d=dx*dx+dy*dy;
+    if (d<bd){ bd=d; best=i; }
+  }
+  return best;
+}
+function pt(e){ const r=cv.getBoundingClientRect(); const p=e.touches?e.touches[0]:e; return [p.clientX-r.left,p.clientY-r.top,p.clientX,p.clientY]; }
+let moved=0;
+cv.addEventListener("pointerdown", e => { dragging=true; moved=0; [lx,ly]=pt(e); cv.classList.add("drag"); cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointermove", e => {
+  const [x,y,px,py]=pt(e);
+  mouseX=x; mouseY=y;
+  if (dragging){ rotY += (x-lx)*0.006; rotX = Math.max(-1.2,Math.min(1.2,rotX+(y-ly)*0.006)); moved+=Math.abs(x-lx)+Math.abs(y-ly); lx=x; ly=y; $("tip").style.display="none"; return; }
+  hover = nearest(x,y);
+  const tip=$("tip");
+  if (hover>=0){
+    const extra = G ? `<br>After shock: <b>${fmtTip(G.runway_shock[hover])}</b> · with plan: <b>${fmtTip(G.runway_opt[hover])}</b>` : "";
+    tip.innerHTML=`<b>#${D.id[hover]}</b> · ${TYPES[D.t[hover]]}${extra}`;
+    tip.style.display="block"; tip.style.left=(px+14)+"px"; tip.style.top=(py+14)+"px";
+  } else tip.style.display="none";
+});
+cv.addEventListener("pointerup", e => {
+  dragging=false; cv.classList.remove("drag");
+  if (moved<5){ const [x,y]=pt(e); const n=nearest(x,y); if(n>=0){ $("acct").value = D.id[n]; doRun(); } }
+});
+cv.addEventListener("pointerleave", ()=>{ hover=-1; mouseX=-999; mouseY=-999; $("tip").style.display="none"; });
+
+resize(); frame();
+// first screen: the team demo account with the README job-loss twist
+setFields({account_id: 23595, income_multiplier: 0.55, bills_increase_pct: 0, one_off_months_spending: 0, one_off_amount: 0, horizon_months: 6});
+doRun();
+</script>
+</body>
+</html>
