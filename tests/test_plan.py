@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import engine.optimizer as optimizer
 from engine.metrics import get_profile, all_customers
-from engine.shocks import apply_shock, shock_many, runway_number
+from engine.shocks import apply_shock, shock_many, runway_number, ei_cap_view, ei_cap_many
 from engine.optimizer import optimize, optimize_many
 from engine.goalplan import goal_plan
 
@@ -105,10 +105,32 @@ def test_everyone_equals_single():
                 assert runway_number(opt["runway_opt"]) == many_opt.loc[aid, "runway_opt"]
 
 
+def test_ei_cap_view():
+    """R11: capped view is labelled, never changes the official runway, and matches the finding
+    (working customers under 6 months on EI: about 42% -> 61%)."""
+    p = get_profile(23595)                            # Savings-first: 55% of income is over the cap
+    official = apply_shock(p, LAYOFF)
+    capped = ei_cap_view(p, LAYOFF)
+    assert apply_shock(p, LAYOFF) == official         # official number untouched
+    assert capped["cap_changes_answer"] is True and "not the official" in capped["label"]
+    assert runway_number(capped["runway_capped"]) < runway_number(official["runway_shock"])
+    assert ei_cap_view(p, FURNACE)["cap_changes_answer"] is False   # no job loss -> no cap
+
+    table = all_customers()
+    working = table["type"] != "Pension-protected"
+    shock_pct = (shock_many(table, LAYOFF)["runway_shock"][working] < 6).mean() * 100
+    cap_pct = (ei_cap_many(table, LAYOFF)["runway_capped"][working] < 6).mean() * 100
+    assert round(shock_pct) == 42 and round(cap_pct) == 61
+
+    for aid in table.index[::50]:                     # everyone version = single version
+        single = runway_number(ei_cap_view(get_profile(aid), LAYOFF)["runway_capped"])
+        assert single == ei_cap_many(table, LAYOFF).loc[aid, "runway_capped"]
+
+
 if __name__ == "__main__":
     tests = [test_check_values_23595, test_goal_plan_23595, test_impossible_goal,
              test_no_goal_gives_none, test_optimizer_never_worse_than_shock,
-             test_edge_accounts, test_everyone_equals_single]
+             test_edge_accounts, test_everyone_equals_single, test_ei_cap_view]
     for t in tests:
         t()
         print("passed:", t.__name__)
