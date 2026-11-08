@@ -1,0 +1,3 @@
+pandas
+numpy
+# add your UI library and LLM SDK here once decided (PLAN.md D-6)
