@@ -163,14 +163,21 @@ details.calc summary{cursor:pointer;font-family:Michroma,sans-serif;font-size:9.
     <form class="row" id="twistForm" style="margin-top:8px">
       <label for="twist" style="position:absolute;left:-9999px">Twist card text</label>
       <input type="text" id="twist" placeholder="e.g. account 23595 laid off, EI 55%, bills up 15%">
-      <button class="go" type="submit">Run</button>
+      <button class="go" type="submit" id="readBtn">Read twist</button>
     </form>
     <div class="chips">
       <button class="chip" type="button" data-p="55,0,0,6">Laid off · EI 55%</button>
       <button class="chip" type="button" data-p="55,15,0,6">Laid off + bills +15%</button>
       <button class="chip" type="button" data-p="100,0,1,6">Furnace = 1 month</button>
     </div>
-    <p class="sub" id="understood" style="margin-top:14px"></p>
+    <div class="err" id="err1" role="status"></div>
+  </section>
+
+  <!-- Step 2: what I understood (confirm before running) -->
+  <section class="card" data-step="2" aria-label="What I understood" hidden>
+    <div class="row" style="justify-content:space-between"><span class="lbl">Here's what I understood</span><span class="badge" id="parserBadge"></span></div>
+    <p class="sub" id="understood" style="margin-top:10px"></p>
+    <div class="row" style="margin-top:14px"><span class="lbl">Account</span><label for="acctConfirm" style="position:absolute;left:-9999px">Account ID</label><input type="number" id="acctConfirm"></div>
     <div class="sliders">
       <div class="sl"><label for="inc">Income after shock <output id="incO">55%</output></label><input type="range" id="inc" min="0" max="100" step="5" value="55"></div>
       <div class="sl"><label for="bills">Household bills <output id="billsO">+0%</output></label><input type="range" id="bills" min="0" max="50" step="5" value="0"></div>
@@ -179,11 +186,11 @@ details.calc summary{cursor:pointer;font-family:Michroma,sans-serif;font-size:9.
       <div class="sl"><label for="oneoffAmt">One-off cost ($)</label><input type="number" id="oneoffAmt" min="0" step="100" value="0" style="width:100%"></div>
     </div>
     <div class="err" id="err" role="status"></div>
-    <div class="stepnav"><button type="button" class="go" data-go="2">See the customer</button></div>
+    <div class="stepnav"><button type="button" class="chip" data-go="1">Back</button><button type="button" class="go" id="runBtn">Looks right · Run</button></div>
   </section>
 
   <!-- Steps 3-4: know the customer + the shock -->
-  <section class="card" data-step="2" aria-live="polite" hidden>
+  <section class="card" data-step="3" aria-live="polite" hidden>
     <div class="row" style="justify-content:space-between">
       <div class="row"><span class="lbl">Customer</span><label for="acct" style="position:absolute;left:-9999px">Account ID</label><input type="number" id="acct" value="23595"></div>
       <span id="badge" class="badge"></span>
@@ -193,21 +200,21 @@ details.calc summary{cursor:pointer;font-family:Michroma,sans-serif;font-size:9.
     <div class="lbl" style="margin-top:14px">Runway today · before the shock</div>
     <div class="big"><span class="n" id="rwToday">–</span><span class="u" id="rwTodayU">months</span></div>
     <p class="sub" id="today"></p>
-    <div class="stepnav"><button type="button" class="chip" data-go="1">Back</button><button type="button" class="go" data-go="3">Next: apply the shock</button></div>
+    <div class="stepnav"><button type="button" class="chip" data-go="2">Back</button><button type="button" class="go" data-go="4">Next: apply the shock</button></div>
   </section>
 
   <!-- Step 4: the shock -->
-  <section class="card" data-step="3" aria-live="polite" hidden>
+  <section class="card" data-step="4" aria-live="polite" hidden>
     <div class="lbl">Runway after shock · official</div>
     <div class="big"><span class="n" id="rw">–</span><span class="u" id="rwU">months</span></div>
     <div class="verdict" id="verdict"></div>
     <p class="sub" id="shockWhat"></p>
     <p class="sub" id="cap"></p>
-    <div class="stepnav"><button type="button" class="chip" data-go="2">Back</button><button type="button" class="go" data-go="4">Next: the plan</button></div>
+    <div class="stepnav"><button type="button" class="chip" data-go="3">Back</button><button type="button" class="go" data-go="5">Next: the plan</button></div>
   </section>
 
   <!-- Step 5: the plan -->
-  <section class="card" data-step="4" aria-live="polite" hidden>
+  <section class="card" data-step="5" aria-live="polite" hidden>
     <div class="lbl">The plan · if the shock hits</div>
     <div class="big"><span class="n" id="rwOpt" style="font-size:48px">–</span><span class="u" id="rwOptU">months</span></div>
     <div class="verdict" id="verdictOpt"></div>
@@ -217,11 +224,11 @@ details.calc summary{cursor:pointer;font-family:Michroma,sans-serif;font-size:9.
     <div class="lbl" style="margin-top:18px">Goal plan · before a shock</div>
     <p class="sub" id="goalPlan" style="color:var(--ink)"></p>
     <details class="calc"><summary>Show the calculation</summary><div class="tablewrap"><table id="calc"></table></div></details>
-    <div class="stepnav"><button type="button" class="chip" data-go="3">Back</button><button type="button" class="go" data-go="5">Next: everyone</button></div>
+    <div class="stepnav"><button type="button" class="chip" data-go="4">Back</button><button type="button" class="go" data-go="6">Next: everyone</button></div>
   </section>
 
   <!-- Step 6: everyone -->
-  <section class="card" data-step="5" hidden>
+  <section class="card" data-step="6" hidden>
     <div class="row" style="justify-content:space-between">
       <div class="lbl">Same twist on everyone</div>
       <div class="seg" role="group" aria-label="Globe shows">
@@ -232,7 +239,7 @@ details.calc summary{cursor:pointer;font-family:Michroma,sans-serif;font-size:9.
     <div class="big" style="margin-top:4px"><span class="n" id="crowd" style="font-size:44px">–</span><span class="u" id="crowdU">fall short</span></div>
     <div class="bars" id="bars"></div>
     <p class="sub" id="rank"></p>
-    <div class="stepnav"><button type="button" class="chip" data-go="4">Back</button><button type="button" class="go" data-go="1">New twist</button></div>
+    <div class="stepnav"><button type="button" class="chip" data-go="5">Back</button><button type="button" class="go" data-go="1">New twist</button></div>
   </section>
 
   <!-- Memory: request history -->
@@ -265,7 +272,7 @@ function show(n){
   step = n;
   document.querySelectorAll("main .card[data-step]").forEach(c => c.hidden = +c.dataset.step !== n);
   window.scrollTo({top: 0, behavior: "smooth"});
-  applyGlobe();                       // dots only sink once the shock is applied (step 3 on)
+  applyGlobe();                       // dots only sink once the shock is applied (step 4 on)
 }
 const idx = new Map(D.id.map((a,i)=>[a,i]));
 let current = undefined;                  // index of the loaded customer
@@ -302,7 +309,7 @@ function readFields(){
            horizon_months: +$("goal").value };
 }
 function setFields(s){
-  if (s.account_id != null) $("acct").value = s.account_id;
+  if (s.account_id != null) { $("acct").value = s.account_id; $("acctConfirm").value = s.account_id; }
   $("inc").value = Math.round((s.income_multiplier ?? 1) * 100);
   $("bills").value = s.bills_increase_pct ?? 0;
   $("oneoff").value = s.one_off_months_spending ?? 0;
@@ -319,7 +326,7 @@ async function doRun(){
     render(out);
     pendingText = ""; parserUsed = "manual";
     return true;
-  } catch (e) { $("err").textContent = e.message; show(1); }
+  } catch (e) { $("err").textContent = e.message; show(2); }
   pendingText = ""; parserUsed = "manual";
   return false;
 }
@@ -411,13 +418,13 @@ function renderHistory(h){
     pendingText = x.text ? "↻ " + x.text.replace(/^↻ /, "") : "";   // keep the original wording
     parserUsed = x.parser || "manual";
     if (x.text) $("twist").value = x.text.replace(/^↻ /, "");
-    if (await doRun()) show(2);
+    if (await doRun()) show(3);
   }));
 }
 
 function applyGlobe(){
   if (!G) return;
-  if (step < 3){ short.fill(0); return; }   // before the shock: nobody has sunk yet
+  if (step < 4){ short.fill(0); return; }   // before the shock: nobody has sunk yet
   const arr = VIEW === "opt" ? G.runway_opt : G.runway_shock;
   for (let i=0;i<N;i++) short[i] = (arr[i] != null && arr[i] < GOAL) ? 1 : 0;
 }
@@ -425,33 +432,50 @@ function applyGlobe(){
 // ---------- events ----------
 ["inc","bills","oneoff","goal"].forEach(id => {
   $(id).addEventListener("input", labels);
-  $(id).addEventListener("change", doRun);             // run when the slider is released
 });
-$("oneoffAmt").addEventListener("change", doRun);
 $("acct").addEventListener("change", doRun);
 document.querySelectorAll(".chip[data-p]").forEach(c => c.addEventListener("click", async () => {
   const [a,b,o,g] = c.dataset.p.split(",").map(Number);
   setFields({account_id: readFields().account_id, income_multiplier: a/100, bills_increase_pct: b,
              one_off_months_spending: o, one_off_amount: 0, horizon_months: g});
-  pendingText = c.textContent; parserUsed = "manual"; if (await doRun()) show(2);
+  pendingText = c.textContent; parserUsed = "manual";
+  showUnderstood(readFields(), "manual", []);
+  show(2);
 }));
+function showUnderstood(s, used, problems){
+  const who = used === "AI" ? "Read by the AI" : used === "backup" ? "Read by the backup parser" : "Preset";
+  $("parserBadge").textContent = who;
+  $("parserBadge").style.cssText = used === "AI" ? "background:#2F5BFF1A;color:#0B1026" : "background:#B8BFD033;color:#0B1026";
+  $("understood").textContent = `Account ${s.account_id ?? "?"} · income ${Math.round(s.income_multiplier*100)}% · bills +${s.bills_increase_pct}%` +
+    (s.one_off_months_spending ? ` · one-off ${s.one_off_months_spending} mo of spending` : "") +
+    (s.one_off_amount ? ` · one-off ${money(s.one_off_amount)}` : "") +
+    ` · goal ${s.horizon_months ?? 6} mo. Check it, edit anything below, then run.`;
+  if (s.account_id == null) $("acctConfirm").value = "";   // don't silently reuse an old account
+  $("err").textContent = problems.join(" ");
+}
 $("twistForm").addEventListener("submit", async e => {
   e.preventDefault();
   const text = $("twist").value.trim(); if (!text) return;
-  $("err").textContent = "";
+  $("err1").textContent = "";
+  const btn = $("readBtn"); btn.disabled = true; btn.textContent = "Reading…";
   try {
     const u = await api("/api/understand", {text});
     setFields(u.settings);
-    const s = u.settings, who = u.parser_used === "AI" ? "the AI" : "the backup parser";
-    $("understood").innerHTML = `<b>Here's what I understood</b> (read by ${who}): account ${s.account_id ?? "?"} · income ${Math.round(s.income_multiplier*100)}% · bills +${s.bills_increase_pct}%` +
-      (s.one_off_months_spending ? ` · one-off ${s.one_off_months_spending} mo of spending` : "") +
-      (s.one_off_amount ? ` · one-off ${money(s.one_off_amount)}` : "") +
-      ` · goal ${s.horizon_months ?? 6} mo. Edit anything below.`;
-    if (u.problems.length){ $("err").textContent = u.problems.join(" "); return; }
-    pendingText = text; parserUsed = u.parser_used; if (await doRun()) show(2);
-  } catch (err) { $("err").textContent = err.message; }
+    pendingText = text; parserUsed = u.parser_used;
+    showUnderstood(u.settings, u.parser_used, u.problems);
+    show(2);
+  } catch (err) { $("err1").textContent = err.message; }
+  btn.disabled = false; btn.textContent = "Read twist";
 });
-$("randomBtn").addEventListener("click", async () => { $("acct").value = D.id[Math.floor(Math.random()*N)]; if (await doRun()) show(2); });
+$("runBtn").addEventListener("click", async () => {
+  const a = $("acctConfirm").value.trim();
+  $("acct").value = a;
+  const btn = $("runBtn"); btn.disabled = true;
+  const ok = await doRun();
+  btn.disabled = false;
+  if (ok) show(3);
+});
+$("randomBtn").addEventListener("click", async () => { $("acct").value = D.id[Math.floor(Math.random()*N)]; if (await doRun()) show(3); });
 document.querySelectorAll(".segb").forEach(b => b.addEventListener("click", () => {
   VIEW = b.dataset.v; document.querySelectorAll(".segb").forEach(x => x.classList.toggle("on", x === b));
   if (window._crowd) renderEveryone(window._crowd);
@@ -622,7 +646,7 @@ cv.addEventListener("pointermove", e => {
 });
 cv.addEventListener("pointerup", e => {
   dragging=false; cv.classList.remove("drag");
-  if (moved<5){ const [x,y]=pt(e); const n=nearest(x,y); if(n>=0){ $("acct").value = D.id[n]; doRun().then(ok => ok && show(2)); } }
+  if (moved<5){ const [x,y]=pt(e); const n=nearest(x,y); if(n>=0){ $("acct").value = D.id[n]; doRun().then(ok => ok && show(3)); } }
 });
 cv.addEventListener("pointerleave", ()=>{ hover=-1; mouseX=-999; mouseY=-999; $("tip").style.display="none"; });
 

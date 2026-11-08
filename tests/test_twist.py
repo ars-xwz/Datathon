@@ -3,6 +3,14 @@ Run: python tests/test_twist.py"""
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from engine.twist import fallback_parse, parse_twist, validate, problems, TWIST_SCHEMA
+import engine.twist as _tw
+
+
+def _no_ai(*args, **kwargs):
+    raise NotImplementedError("tests run without the AI")
+
+
+_tw._ask_ai = _no_ai   # these tests check the backup parser: never call the real AI (works with or without .env)
 
 
 def expect(s, **want):
@@ -74,6 +82,58 @@ def test_range_checks():
     bad = dict(TWIST_SCHEMA, account_id=23595, income_multiplier=9, bills_increase_pct=500, horizon_months=0)
     msg = " ".join(problems(bad))
     assert "Income" in msg and "bills" in msg and "goal" in msg
+
+
+JUDGE_PHRASINGS = [   # (twist text, expected settings), each prefixed with "Account 23595. "
+    ("This customer was laid off. EI pays 55% of their usual income for 6 months. Do they make it?", dict(income_multiplier=.55, horizon_months=6)),
+    ("The furnace dies, and the repair costs a full month of their typical spending.", dict(one_off_months_spending=1)),
+    ("They lose their job (EI at 55%) and their household bills go up 15% in the same month.", dict(income_multiplier=.55, bills_increase_pct=15)),
+    ("They get let go and go on EI.", dict(income_multiplier=.55)),
+    ("Their employer shuts down; they collect EI at 55%.", dict(income_multiplier=.55)),
+    ("Job loss with EI at 55% for 4 months.", dict(income_multiplier=.55, horizon_months=4)),
+    ("Their income drops by half.", dict(income_multiplier=.5)),
+    ("Their income falls 30%.", dict(income_multiplier=.7)),
+    ("They lose 40% of their income.", dict(income_multiplier=.6)),
+    ("They lose all income.", dict(income_multiplier=0)),
+    ("Rent goes up 10%.", dict(bills_increase_pct=10)),
+    ("Household bills rise by 20 percent.", dict(bills_increase_pct=20)),
+    ("Utilities increase 8%.", dict(bills_increase_pct=8)),
+    ("Their bills double.", dict(bills_increase_pct=100)),
+    ("A surprise car repair costs $2,500.", dict(one_off_amount=2500)),
+    ("An unexpected $1,200 dental bill.", dict(one_off_amount=1200)),
+    ("A medical emergency costs 5000 dollars.", dict(one_off_amount=5000)),
+    ("The roof leaks: repair costs two months of their typical spending.", dict(one_off_months_spending=2)),
+    ("A repair costs half a month of spending.", dict(one_off_months_spending=.5)),
+    ("The repair costs one month of their usual expenses.", dict(one_off_months_spending=1)),
+    ("Laid off with EI at 55%, plus a $3,000 repair. Can they last 6 months?", dict(income_multiplier=.55, one_off_amount=3000, horizon_months=6)),
+    ("Laid off, EI 55%, and rent up 15%. Do they survive half a year?", dict(income_multiplier=.55, bills_increase_pct=15, horizon_months=6)),
+    ("Do they make it a year on EI at 55% after a layoff?", dict(income_multiplier=.55, horizon_months=12)),
+    ("They become unemployed and EI pays 55 percent.", dict(income_multiplier=.55)),
+    ("Job loss, EI at 55% for six months.", dict(income_multiplier=.55, horizon_months=6)),
+    ("They're laid off and get EI. Bills also go up 10%. Will they last 9 months?", dict(income_multiplier=.55, bills_increase_pct=10, horizon_months=9)),
+    ("Inflation pushes household bills up 7.5%.", dict(bills_increase_pct=7.5)),
+    ("A $10k emergency.", dict(one_off_amount=10000)),
+    ("The repair costs $1,500 and bills go up 5%.", dict(one_off_amount=1500, bills_increase_pct=5)),
+    ("Their hours are cut and income drops 25%.", dict(income_multiplier=.75)),
+    ("EI pays half their income.", dict(income_multiplier=.5)),
+    ("Their pay goes up 10%.", dict(income_multiplier=1.1)),
+    ("A $2,000 bill for a new fridge.", dict(one_off_amount=2000)),
+    ("They lose their job; EI pays 55%. Rent also rises 12%. Two months of spending for a car repair. Do they make it 8 months?",
+     dict(income_multiplier=.55, bills_increase_pct=12, one_off_months_spending=2, horizon_months=8)),
+]
+
+
+def test_judge_phrasings():
+    """34 realistic ways a judge might word a twist."""
+    failures = []
+    for text, want in JUDGE_PHRASINGS:
+        s = fallback_parse("Account 23595. " + text)
+        full = dict(TWIST_SCHEMA, account_id=23595, **want)
+        wrong = {k: (s[k], v) for k, v in full.items()
+                 if (s[k] is None) != (v is None) or (v is not None and abs(float(s[k]) - float(v)) > 1e-9)}
+        if wrong:
+            failures.append(f"{text!r}: {wrong}")
+    assert not failures, "\n".join(failures)
 
 
 if __name__ == "__main__":
