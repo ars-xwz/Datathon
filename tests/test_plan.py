@@ -152,10 +152,34 @@ def test_ei_cap_view():
         assert single == ei_cap_many(table, LAYOFF).loc[aid, "runway_capped"]
 
 
+def test_type_advice():
+    """PLAN.md 2.5: one personalized sentence per type (none for Trim), matching the facts."""
+    table = all_customers()
+    # 23595 is Savings-first and reaches the goal -> the EI-cap sentence
+    _, _, opt = run_one(23595, LAYOFF_BILLS)
+    assert opt["reached"] is True and "capped" in opt["type_advice"]
+    # Savings-first that can't reach a long goal -> "build savings first" with the extra amount
+    _, _, opt = run_one(23595, twist(mult=0.55, bills=15, horizon=24))
+    assert opt["reached"] is False and "Build savings first" in opt["type_advice"]
+    assert f"${opt['extra_savings_needed']:,.0f}" in opt["type_advice"]
+    # one account of each other type
+    for ctype, must_say in [("Stabilize first", "stop going below zero"),
+                            ("Pension-protected", "pension"), ("Trim", None)]:
+        aid = table.index[table["type"] == ctype][0]
+        _, _, opt = run_one(aid, LAYOFF_BILLS)
+        if must_say is None:
+            assert opt["type_advice"] is None
+        else:
+            assert must_say in opt["type_advice"]
+    # every account gets advice without crashing (sample)
+    for aid in table.index[::25]:
+        run_one(aid, LAYOFF_BILLS)
+
+
 if __name__ == "__main__":
     tests = [test_check_values_23595, test_limits_per_type, test_goal_plan_23595,
              test_impossible_goal, test_no_goal_uses_default, test_optimizer_never_worse_than_shock,
-             test_edge_accounts, test_everyone_equals_single, test_ei_cap_view]
+             test_edge_accounts, test_everyone_equals_single, test_ei_cap_view, test_type_advice]
     for t in tests:
         t()
         print("passed:", t.__name__)

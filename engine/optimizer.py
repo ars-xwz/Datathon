@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 
 from engine.shocks import runway_many, goal_months, NO_SHORTFALL
+from engine.customer_types import EI_MAX
 
 # The three levers (names match the columns in get_profile() / all_customers())
 LEVERS = ["cash", "bills", "transfers"]
@@ -134,9 +135,33 @@ def optimize_many(table, shocked, settings, aim=None, limits=None, step=None):
     return out
 
 
+def type_advice(p, ctype, reached, extra_savings, horizon):
+    """One personalized sentence for the customer's type (PLAN.md 2.5), or None for Trim."""
+    from engine.metrics import customer_row   # imported here: only this function needs it
+    row = customer_row(p["account_id"])
+
+    if ctype == "Stabilize first":
+        n = int(row["below_zero_months"])
+        word = "month" if n == 1 else "months"
+        return (f"First, stop going below zero: this account was overdrawn in {n} {word}. "
+                f"In our data, overdraft before a loan was the strongest warning sign of default.")
+    if ctype == "Savings-first":
+        if not reached:
+            return (f"Cuts alone won't cover {horizon} months. Build savings first: about "
+                    f"${extra_savings:,.0f} more would close the gap.")
+        return (f"Real EI is capped at ${EI_MAX:,.0f}/month, so this customer's income could drop "
+                f"further than the official 55% rule shows. A bigger savings cushion helps.")
+    if ctype == "Pension-protected":
+        share = round(row["pension"] / p["I"] * 100)
+        return (f"About {share}% of this customer's income is pension, which keeps paying "
+                f"during a layoff, so their real runway is likely longer than the official one.")
+    return None                                   # Trim: the cuts plan is the whole answer
+
+
 def optimize(p, shocked, settings, ctype):
     """CONTRACT: returns dict with cuts {cash, bills, transfers} in $/month, total_cut,
-    runway_opt, reached (bool or None), extra_savings_needed ($ or 0)."""
+    runway_opt, reached (bool or None), extra_savings_needed ($ or 0),
+    type_advice (one sentence for the customer's type, or None)."""
     # run the "everyone" version on a table with just this one customer
     one_table = pd.DataFrame([{lever: p[lever] for lever in LEVERS}])
     one_shocked = pd.DataFrame([{k: shocked[k] for k in ("income", "spending", "buffer_left")}])
@@ -144,6 +169,8 @@ def optimize(p, shocked, settings, ctype):
 
     runway_opt = NO_SHORTFALL if row["no_shortfall"] else float(row["runway_opt"])
     reached = bool(row["reached"])
+    extra = float(row["extra_savings_needed"])
     return {"cuts": {lever: float(row[f"cut_{lever}"]) for lever in LEVERS},
             "total_cut": float(row["total_cut"]), "runway_opt": runway_opt,
-            "reached": reached, "extra_savings_needed": float(row["extra_savings_needed"])}
+            "reached": reached, "extra_savings_needed": extra,
+            "type_advice": type_advice(p, ctype, reached, extra, goal_months(settings))}
