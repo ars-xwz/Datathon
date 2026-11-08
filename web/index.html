@@ -83,6 +83,13 @@ details.calc summary{cursor:pointer;font-family:Michroma,sans-serif;font-size:9.
 .hist{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}
 .histb{width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:2px;padding:8px 12px;cursor:pointer;font:400 13px Sora,system-ui,sans-serif;color:var(--ink);display:grid;gap:2px}
 .histb:hover{border-color:var(--blue)}
+.card[hidden]{display:none}
+.navlink{background:none;border:0;padding:0;color:var(--muted);font:inherit;letter-spacing:inherit;cursor:pointer;min-height:44px}
+.navlink:hover,.navlink.on{color:var(--blue)}
+.stepnav{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+.panel h3{font-family:Michroma,sans-serif;font-weight:400;font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin:18px 0 4px}
+.panel p,.panel li{font-size:13px;color:#3A4361}
+.panel ol,.panel ul{padding-left:18px;margin:6px 0}
 .histb small{color:var(--muted);font-size:11px}
 @media (max-width:820px){
   .legend{top:auto;bottom:16px;right:16px;flex-direction:row;flex-wrap:wrap;gap:12px}
@@ -104,7 +111,7 @@ details.calc summary{cursor:pointer;font-family:Michroma,sans-serif;font-size:9.
     <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 19H3z" fill="none" stroke="#0B1026" stroke-width="2.4" stroke-linejoin="round"/><path d="M12 10 16 17H8z" fill="#2F5BFF"/></svg>
     DELTA-OR-DIE
   </div>
-  <div class="links"><span>HOW IT WORKS</span><span>FINDINGS</span><button class="pill" type="button" id="randomBtn">PICK A RANDOM CUSTOMER</button></div>
+  <div class="links"><button type="button" class="navlink" data-panel="how">HOW IT WORKS</button><button type="button" class="navlink" data-panel="findings">FINDINGS</button><button class="pill" type="button" id="randomBtn">PICK A RANDOM CUSTOMER</button></div>
 </nav>
 <div class="hint">Drag to spin · hover to magnify · click to load a customer</div>
 
@@ -114,8 +121,44 @@ details.calc summary{cursor:pointer;font-family:Michroma,sans-serif;font-size:9.
   </div>
   <p class="lede">Each dot is one of 4,500 real customers.<br>Read a twist and watch who <em>sinks</em>.</p>
 
+  <!-- How it works / Findings (opened from the top bar) -->
+  <section class="card panel" id="panel-how" hidden aria-label="How it works">
+    <div class="row" style="justify-content:space-between"><span class="lbl">How it works</span><button type="button" class="chip" data-close>Close</button></div>
+    <ol>
+      <li><b>Read the twist.</b> Type the judge's twist in plain words. A parser (or the AI, when set up) turns it into settings; you can edit every one.</li>
+      <li><b>Know the customer.</b> Income, spending, fixed costs, household bills and savings, exactly as defined in the challenge, plus the customer's type.</li>
+      <li><b>The shock.</b> The official runway: how many months savings last after the shock.</li>
+      <li><b>The plan.</b> The cheapest set of cuts that stretches savings furthest, and an emergency-fund goal.</li>
+      <li><b>Everyone.</b> The same twist on all 4,500 customers. Customers who fall short sink on the globe.</li>
+    </ol>
+    <h3>Runway</h3>
+    <p>Savings left after any one-off cost ÷ monthly shortfall (spending minus income), capped at 120 months. If income still covers spending, there is no shortfall.</p>
+    <h3>Customer types (first match wins)</h3>
+    <ul>
+      <li><b>Stabilize first:</b> balance went below zero in any month.</li>
+      <li><b>Pension-protected:</b> pension is 30%+ of income, which a layoff doesn't cut.</li>
+      <li><b>Savings-first:</b> 55% of income is above the 2026 EI maximum ($3,159/month).</li>
+      <li><b>Trim:</b> everyone else.</li>
+    </ul>
+    <h3>The plan</h3>
+    <p>Cuts only cash withdrawals, household bills and other transfers out, trying every combination in 5% steps, with limits by type. Every number comes from code; the language model never calculates.</p>
+  </section>
+
+  <section class="card panel" id="panel-findings" hidden aria-label="Findings">
+    <div class="row" style="justify-content:space-between"><span class="lbl">Findings</span><button type="button" class="chip" data-close>Close</button></div>
+    <h3>An overdraft before the loan predicts default</h3>
+    <p>All 27 borrowers who went below zero before taking out their loan defaulted. Among the other 655 borrowers, 7.5% did. None of the 606 borrowers who repaid ever went below zero.</p>
+    <h3>Looking safe today is not being resilient</h3>
+    <p>74% of customers spend less than they earn, yet 699 of them would run out of savings within 6 months of a layoff on EI.</p>
+    <h3>The official EI rule flatters higher earners</h3>
+    <p>Real EI stops at $3,159/month. With the cap, working customers who can't last 6 months rise from 42% to 61%.</p>
+    <h3>What the plan fixes, and who it can't save</h3>
+    <p>After a layoff on EI, the share who can't last 6 months falls from 35.1% to 6.5% with the plan. Even with the strongest cuts, 1 in 5 Stabilize-first customers still fall short.</p>
+    <p class="sub">76% of all spending is cash withdrawals, so plans say "lower cash withdrawals by $X" rather than guessing categories. The overdraft finding rests on 27 borrowers: a strong signal in this data, not a proven rule.</p>
+  </section>
+
   <!-- Steps 1-2: ask + confirm -->
-  <section class="card" aria-label="Twist card">
+  <section class="card" data-step="1" aria-label="Twist card">
     <div class="lbl">Read the twist card</div>
     <form class="row" id="twistForm" style="margin-top:8px">
       <label for="twist" style="position:absolute;left:-9999px">Twist card text</label>
@@ -136,36 +179,49 @@ details.calc summary{cursor:pointer;font-family:Michroma,sans-serif;font-size:9.
       <div class="sl"><label for="oneoffAmt">One-off cost ($)</label><input type="number" id="oneoffAmt" min="0" step="100" value="0" style="width:100%"></div>
     </div>
     <div class="err" id="err" role="status"></div>
+    <div class="stepnav"><button type="button" class="go" data-go="2">See the customer</button></div>
   </section>
 
   <!-- Steps 3-4: know the customer + the shock -->
-  <section class="card" aria-live="polite">
+  <section class="card" data-step="2" aria-live="polite" hidden>
     <div class="row" style="justify-content:space-between">
       <div class="row"><span class="lbl">Customer</span><label for="acct" style="position:absolute;left:-9999px">Account ID</label><input type="number" id="acct" value="23595"></div>
       <span id="badge" class="badge"></span>
     </div>
+    <p class="sub" id="twistNow"></p>
     <p class="sub" id="reason"></p>
-    <div class="lbl" style="margin-top:14px">Runway after shock · official</div>
+    <div class="lbl" style="margin-top:14px">Runway today · before the shock</div>
+    <div class="big"><span class="n" id="rwToday">–</span><span class="u" id="rwTodayU">months</span></div>
+    <p class="sub" id="today"></p>
+    <div class="stepnav"><button type="button" class="chip" data-go="1">Back</button><button type="button" class="go" data-go="3">Next: apply the shock</button></div>
+  </section>
+
+  <!-- Step 4: the shock -->
+  <section class="card" data-step="3" aria-live="polite" hidden>
+    <div class="lbl">Runway after shock · official</div>
     <div class="big"><span class="n" id="rw">–</span><span class="u" id="rwU">months</span></div>
     <div class="verdict" id="verdict"></div>
-    <p class="sub" id="today"></p>
+    <p class="sub" id="shockWhat"></p>
     <p class="sub" id="cap"></p>
+    <div class="stepnav"><button type="button" class="chip" data-go="2">Back</button><button type="button" class="go" data-go="4">Next: the plan</button></div>
   </section>
 
   <!-- Step 5: the plan -->
-  <section class="card" aria-live="polite">
+  <section class="card" data-step="4" aria-live="polite" hidden>
     <div class="lbl">The plan · if the shock hits</div>
     <div class="big"><span class="n" id="rwOpt" style="font-size:48px">–</span><span class="u" id="rwOptU">months</span></div>
     <div class="verdict" id="verdictOpt"></div>
     <ul class="cuts" id="cuts"></ul>
     <p class="sub" id="why"></p>
+    <p class="sub" id="advice"></p>
     <div class="lbl" style="margin-top:18px">Goal plan · before a shock</div>
     <p class="sub" id="goalPlan" style="color:var(--ink)"></p>
     <details class="calc"><summary>Show the calculation</summary><div class="tablewrap"><table id="calc"></table></div></details>
+    <div class="stepnav"><button type="button" class="chip" data-go="3">Back</button><button type="button" class="go" data-go="5">Next: everyone</button></div>
   </section>
 
   <!-- Step 6: everyone -->
-  <section class="card">
+  <section class="card" data-step="5" hidden>
     <div class="row" style="justify-content:space-between">
       <div class="lbl">Same twist on everyone</div>
       <div class="seg" role="group" aria-label="Globe shows">
@@ -176,6 +232,7 @@ details.calc summary{cursor:pointer;font-family:Michroma,sans-serif;font-size:9.
     <div class="big" style="margin-top:4px"><span class="n" id="crowd" style="font-size:44px">–</span><span class="u" id="crowdU">fall short</span></div>
     <div class="bars" id="bars"></div>
     <p class="sub" id="rank"></p>
+    <div class="stepnav"><button type="button" class="chip" data-go="4">Back</button><button type="button" class="go" data-go="1">New twist</button></div>
   </section>
 
   <!-- Memory: request history -->
@@ -201,6 +258,15 @@ const N = D.id.length;
 const TYPES = D.types;
 const COLORS = ["#C42B45","#077A8C","#5B3FE0","#A86400"], SHORT = "#B8BFD0";
 const $ = id => document.getElementById(id);
+
+// ---------- one card at a time ----------
+let step = 1;
+function show(n){
+  step = n;
+  document.querySelectorAll("main .card[data-step]").forEach(c => c.hidden = +c.dataset.step !== n);
+  window.scrollTo({top: 0, behavior: "smooth"});
+  applyGlobe();                       // dots only sink once the shock is applied (step 3 on)
+}
 const idx = new Map(D.id.map((a,i)=>[a,i]));
 let current = undefined;                  // index of the loaded customer
 let short = new Uint8Array(N);            // 1 = falls short (dot sinks + turns grey)
@@ -251,8 +317,11 @@ async function doRun(){
   try {
     const out = await api("/api/run", {settings: readFields(), text: pendingText, parser_used: parserUsed});
     render(out);
-  } catch (e) { $("err").textContent = e.message; }
+    pendingText = ""; parserUsed = "manual";
+    return true;
+  } catch (e) { $("err").textContent = e.message; show(1); }
   pendingText = ""; parserUsed = "manual";
+  return false;
 }
 
 function render(out){
@@ -273,7 +342,18 @@ function render(out){
   $("verdict").textContent = sh.verdict_shock ? `Makes it past ${GOAL} months` : `Falls short of ${GOAL} months`;
   $("verdict").style.color = sh.verdict_shock ? "#0F8A5F" : "#C42B45";
   const rt = sh.runway_today;
-  $("today").textContent = `Today: ${isNum(rt) ? rt + " months" : rt} · income ${money(p.I)} · spending ${money(p.S)} · savings ${money(p.B)}`;
+  $("rwToday").textContent = rwText(rt);
+  $("rwTodayU").textContent = isNum(rt) ? "months" : "no shortfall";
+  $("today").textContent = `Income ${money(p.I)} · spending ${money(p.S)} · fixed costs ${money(p.F)} · household bills ${money(p.H)} · savings ${money(p.B)}` +
+    (isNum(rt) ? "" : " · they earn at least what they spend, so savings aren't shrinking");
+  const st = out.settings, changed = [];
+  if (st.income_multiplier !== 1) changed.push(`income ${money(p.I)} → ${money(sh.income)}/month`);
+  if (st.bills_increase_pct) changed.push(`spending ${money(p.S)} → ${money(sh.spending)}/month (bills ${st.bills_increase_pct > 0 ? "+" : ""}${st.bills_increase_pct}%)`);
+  if (sh.one_off) changed.push(`one-off cost ${money(sh.one_off)}: savings ${money(p.B)} → ${money(sh.buffer_left)}`);
+  $("shockWhat").textContent = changed.length ? "What the shock changed: " + changed.join(" · ") : "No shock applied.";
+  $("twistNow").textContent = "Twist: " + (out.history && out.history[0] && out.history[0].text ? out.history[0].text.replace(/^↻ /, "").replace(/[.\s]+$/, "") :
+    `income ${Math.round(st.income_multiplier*100)}% · bills +${st.bills_increase_pct}%` + (st.one_off_months_spending ? ` · one-off ${st.one_off_months_spending} mo` : "") +
+    (st.one_off_amount ? ` · one-off ${money(st.one_off_amount)}` : "")) + ` · goal ${GOAL} mo`;
   const cap = out.ei_cap;
   $("cap").textContent = cap.cap_changes_answer ? `${cap.label}: ${isNum(cap.runway_capped) ? cap.runway_capped + " months" : cap.runway_capped}` : "";
 
@@ -287,6 +367,7 @@ function render(out){
   const cuts = Object.entries(op.cuts).filter(([k,v]) => v > 0);
   $("cuts").innerHTML = cuts.length ? cuts.map(([k,v]) => `<li>${names[k]} <b>${money(v)}</b>/month</li>`).join("") : `<li>No cuts needed</li>`;
   $("why").textContent = out.view.sentences[2] || "";
+  $("advice").textContent = op.type_advice || "";
   $("goalPlan").textContent = out.goal.message;
   const head = `<tr><th></th><th>Today</th><th>After shock<br><span>official</span></th><th>With plan</th></tr>`;
   $("calc").innerHTML = head + out.view.table.map(r => `<tr${r[0].startsWith("  ")?' class="cut"':''}><td>${r[0].trim()}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("");
@@ -324,13 +405,19 @@ function renderHistory(h){
                  (s.one_off_amount ? ` · one-off ${money(s.one_off_amount)}` : "") + ` · ${x.parser}`;
     return `<li><button type="button" class="histb" data-i="${i}"><span>${what}</span><small>${meta}</small></button></li>`;
   }).join("");
-  document.querySelectorAll(".histb").forEach(b => b.addEventListener("click", () => {
-    setFields(h[+b.dataset.i].settings); doRun();
+  document.querySelectorAll(".histb").forEach(b => b.addEventListener("click", async () => {
+    const x = h[+b.dataset.i];
+    setFields(x.settings);
+    pendingText = x.text ? "↻ " + x.text.replace(/^↻ /, "") : "";   // keep the original wording
+    parserUsed = x.parser || "manual";
+    if (x.text) $("twist").value = x.text.replace(/^↻ /, "");
+    if (await doRun()) show(2);
   }));
 }
 
 function applyGlobe(){
   if (!G) return;
+  if (step < 3){ short.fill(0); return; }   // before the shock: nobody has sunk yet
   const arr = VIEW === "opt" ? G.runway_opt : G.runway_shock;
   for (let i=0;i<N;i++) short[i] = (arr[i] != null && arr[i] < GOAL) ? 1 : 0;
 }
@@ -342,11 +429,11 @@ function applyGlobe(){
 });
 $("oneoffAmt").addEventListener("change", doRun);
 $("acct").addEventListener("change", doRun);
-document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+document.querySelectorAll(".chip[data-p]").forEach(c => c.addEventListener("click", async () => {
   const [a,b,o,g] = c.dataset.p.split(",").map(Number);
   setFields({account_id: readFields().account_id, income_multiplier: a/100, bills_increase_pct: b,
              one_off_months_spending: o, one_off_amount: 0, horizon_months: g});
-  pendingText = c.textContent; parserUsed = "manual"; doRun();
+  pendingText = c.textContent; parserUsed = "manual"; if (await doRun()) show(2);
 }));
 $("twistForm").addEventListener("submit", async e => {
   e.preventDefault();
@@ -361,10 +448,10 @@ $("twistForm").addEventListener("submit", async e => {
       (s.one_off_amount ? ` · one-off ${money(s.one_off_amount)}` : "") +
       ` · goal ${s.horizon_months ?? 6} mo. Edit anything below.`;
     if (u.problems.length){ $("err").textContent = u.problems.join(" "); return; }
-    pendingText = text; parserUsed = u.parser_used; doRun();
+    pendingText = text; parserUsed = u.parser_used; if (await doRun()) show(2);
   } catch (err) { $("err").textContent = err.message; }
 });
-$("randomBtn").addEventListener("click", () => { $("acct").value = D.id[Math.floor(Math.random()*N)]; doRun(); });
+$("randomBtn").addEventListener("click", async () => { $("acct").value = D.id[Math.floor(Math.random()*N)]; if (await doRun()) show(2); });
 document.querySelectorAll(".segb").forEach(b => b.addEventListener("click", () => {
   VIEW = b.dataset.v; document.querySelectorAll(".segb").forEach(x => x.classList.toggle("on", x === b));
   if (window._crowd) renderEveryone(window._crowd);
@@ -535,11 +622,23 @@ cv.addEventListener("pointermove", e => {
 });
 cv.addEventListener("pointerup", e => {
   dragging=false; cv.classList.remove("drag");
-  if (moved<5){ const [x,y]=pt(e); const n=nearest(x,y); if(n>=0){ $("acct").value = D.id[n]; doRun(); } }
+  if (moved<5){ const [x,y]=pt(e); const n=nearest(x,y); if(n>=0){ $("acct").value = D.id[n]; doRun().then(ok => ok && show(2)); } }
 });
 cv.addEventListener("pointerleave", ()=>{ hover=-1; mouseX=-999; mouseY=-999; $("tip").style.display="none"; });
 
 resize(); frame();
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => show(+b.dataset.go)));
+document.querySelectorAll(".navlink").forEach(b => b.addEventListener("click", () => {
+  const id = "panel-" + b.dataset.panel, open = $(id).hidden;
+  document.querySelectorAll(".panel").forEach(p => p.hidden = true);
+  document.querySelectorAll(".navlink").forEach(x => x.classList.remove("on"));
+  if (open){ $(id).hidden = false; b.classList.add("on"); window.scrollTo({top: 0, behavior: "smooth"}); }
+}));
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => {
+  b.closest(".panel").hidden = true;
+  document.querySelectorAll(".navlink").forEach(x => x.classList.remove("on"));
+}));
+
 // first screen: the team demo account with the README job-loss twist
 setFields({account_id: 23595, income_multiplier: 0.55, bills_increase_pct: 0, one_off_months_spending: 0, one_off_amount: 0, horizon_months: 6});
 doRun();
